@@ -1,325 +1,85 @@
-// backend/src/modules/admin/admin.routes.ts
-import express from 'express';
-import prisma from '../../db/prismaClient';
-import { authMiddleware, adminMiddleware } from '../../middleware/authMiddleware';
+import express, { Request, Response } from 'express';
+import Item from '../../models/Item';
+import Claim from '../../models/Claim';
+import User from '../../models/User';
+import MarketplaceItem from '../../models/MarketplaceItem';
+import { authMiddleware, adminMiddleware, AuthRequest } from '../../middleware/authMiddleware';
 
 const router = express.Router();
 
-// All routes require admin authentication
-router.use(authMiddleware, adminMiddleware);
+router.use(authMiddleware);
+router.use(adminMiddleware);
 
-// Get all pending claims
-router.get('/claims/pending', async (req, res) => {
+router.get('/items', async (req: Request, res: Response) => {
   try {
-    const claims = await prisma.claim.findMany({
-      where: { status: 'PENDING' },
-      include: {
-        foundItem: true,
-        claimant: {
-          select: { firstName: true, lastName: true, email: true, phone: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    const items = await Item.find().sort({ createdAt: -1 });
+    res.json(items);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error fetching items', error: error.message });
+  }
+});
 
+router.get('/claims', async (req: Request, res: Response) => {
+  try {
+    const claims = await Claim.find()
+      .populate('itemId')
+      .populate('claimantId', 'name email')
+      .sort({ createdAt: -1 });
     res.json(claims);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch claims' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error fetching claims', error: error.message });
   }
 });
 
-// Approve claim
-router.put('/claims/:id/approve', async (req: any, res) => {
+router.patch('/claims/:id', async (req: Request, res: Response) => {
   try {
-    const { reviewNotes } = req.body;
-
-    const claim = await prisma.claim.findUnique({
-      where: { id: req.params.id },
-      include: { foundItem: true }
-    });
-
-    if (!claim) {
-      return res.status(404).json({ error: 'Claim not found' });
+    const { status } = req.body;
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
     }
-
-    if (claim.status !== 'PENDING') {
-      return res.status(400).json({ error: 'Claim already processed' });
+    const updatedClaim = await Claim.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    ).populate('itemId').populate('claimantId', 'name email');
+    if (!updatedClaim) {
+      return res.status(404).json({ message: 'Claim not found' });
     }
-
-    // Approve claim and mark item as claimed
-    const [updatedClaim, updatedItem] = await prisma.$transaction([
-      prisma.claim.update({
-        where: { id: req.params.id },
-        data: {
-          status: 'APPROVED',
-          reviewedBy: req.user.id,
-          reviewNotes,
-          reviewedAt: new Date()
-        },
-        include: {
-          claimant: {
-            select: { firstName: true, lastName: true, email: true }
-          },
-          foundItem: true
-        }
-      }),
-      prisma.foundItem.update({
-        where: { id: claim.foundItemId },
-        data: { status: 'CLAIMED' }
-      })
-    ]);
-
-    // TODO: Send approval email to claimant
-
     res.json(updatedClaim);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to approve claim' });
+  } catch (error: any) {
+    res.status(400).json({ message: 'Error updating claim', error: error.message });
   }
 });
 
-// Reject claim
-router.put('/claims/:id/reject', async (req: any, res) => {
+router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const { reviewNotes } = req.body;
-
-    const claim = await prisma.claim.findUnique({
-      where: { id: req.params.id }
-    });
-
-    if (!claim) {
-      return res.status(404).json({ error: 'Claim not found' });
-    }
-
-    if (claim.status !== 'PENDING') {
-      return res.status(400).json({ error: 'Claim already processed' });
-    }
-
-    const updatedClaim = await prisma.claim.update({
-      where: { id: req.params.id },
-      data: {
-        status: 'REJECTED',
-        reviewedBy: req.user.id,
-        reviewNotes,
-        reviewedAt: new Date()
-      },
-      include: {
-        claimant: {
-          select: { firstName: true, lastName: true, email: true }
-        },
-        foundItem: true
-      }
-    });
-
-    // TODO: Send rejection email to claimant
-
-    res.json(updatedClaim);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to reject claim' });
+    const totalItems = await Item.countDocuments();
+    const activeLost = await Item.countDocuments({ type: 'lost', status: 'active' });
+    const activeFound = await Item.countDocuments({ type: 'found', status: 'active' });
+    const claimed = await Item.countDocuments({ status: 'claimed' });
+    const expired = await Item.countDocuments({ status: 'expired' });
+    const marketplaceItems = await MarketplaceItem.countDocuments({ status: 'available' });
+    res.json({ totalItems, activeLost, activeFound, claimed, expired, marketplaceItems });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error fetching stats', error: error.message });
   }
 });
 
-// Get all found items (for admin dashboard)
-router.get('/items/found', async (req, res) => {
+router.get('/users', async (req: Request, res: Response) => {
   try {
-    const { status } = req.query;
-    
-    const where: any = {};
-    if (status) where.status = status;
-
-    const items = await prisma.foundItem.findMany({
-      where,
-      include: {
-        user: {
-          select: { firstName: true, lastName: true, email: true }
-        },
-        claims: {
-          where: { status: 'PENDING' },
-          include: {
-            claimant: {
-              select: { firstName: true, lastName: true }
-            }
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    // Add expiry info
-    const itemsWithExpiry = items.map(item => ({
-      ...item,
-      daysUntilExpiry: Math.ceil(
-        (item.expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-      ),
-      isExpiring: item.expiresAt.getTime() - new Date().getTime() < 3 * 24 * 60 * 60 * 1000 // 3 days
-    }));
-
-    res.json(itemsWithExpiry);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch items' });
+    const users = await User.find().select('-password').sort({ createdAt: -1 });
+    res.json(users);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error fetching users', error: error.message });
   }
 });
 
-// Get items expiring soon (within 7 days)
-router.get('/items/expiring', async (req, res) => {
+router.delete('/items/:id', async (req: Request, res: Response) => {
   try {
-    const sevenDaysFromNow = new Date();
-    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-
-    const items = await prisma.foundItem.findMany({
-      where: {
-        status: 'AVAILABLE',
-        expiresAt: {
-          lte: sevenDaysFromNow,
-          gt: new Date()
-        }
-      },
-      include: {
-        user: {
-          select: { firstName: true, lastName: true, email: true }
-        },
-        claims: {
-          where: { status: 'PENDING' }
-        }
-      },
-      orderBy: { expiresAt: 'asc' }
-    });
-
-    const itemsWithExpiry = items.map(item => ({
-      ...item,
-      daysUntilExpiry: Math.ceil(
-        (item.expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-      )
-    }));
-
-    res.json(itemsWithExpiry);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch expiring items' });
-  }
-});
-
-// Extend hold period (add 7 days)
-router.put('/items/:id/extend', async (req, res) => {
-  try {
-    const item = await prisma.foundItem.findUnique({
-      where: { id: req.params.id }
-    });
-
-    if (!item) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-
-    if (item.status !== 'AVAILABLE') {
-      return res.status(400).json({ error: 'Can only extend available items' });
-    }
-
-    const newExpiryDate = new Date(item.expiresAt);
-    newExpiryDate.setDate(newExpiryDate.getDate() + 7);
-
-    const updated = await prisma.foundItem.update({
-      where: { id: req.params.id },
-      data: { expiresAt: newExpiryDate },
-      include: {
-        user: {
-          select: { firstName: true, lastName: true, email: true }
-        }
-      }
-    });
-
-    res.json({
-      ...updated,
-      daysUntilExpiry: Math.ceil(
-        (updated.expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-      )
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to extend hold period' });
-  }
-});
-
-// Push to marketplace (ADMIN ONLY)
-router.post('/items/:id/to-marketplace', async (req, res) => {
-  try {
-    const { pickupLocation } = req.body;
-
-    if (!pickupLocation) {
-      return res.status(400).json({ error: 'Pickup location required' });
-    }
-
-    const item = await prisma.foundItem.findUnique({
-      where: { id: req.params.id }
-    });
-
-    if (!item) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-
-    if (item.status !== 'AVAILABLE') {
-      return res.status(400).json({ error: 'Item must be available to move to marketplace' });
-    }
-
-    // Create marketplace item and update found item status
-    const [marketplaceItem, updatedFoundItem] = await prisma.$transaction([
-      prisma.marketplaceItem.create({
-        data: {
-          foundItemId: item.id,
-          itemName: item.itemName,
-          category: item.category,
-          description: item.description,
-          imageUrl: item.imageUrl,
-          pickupLocation
-        }
-      }),
-      prisma.foundItem.update({
-        where: { id: req.params.id },
-        data: { status: 'MARKETPLACE' }
-      })
-    ]);
-
-    res.json(marketplaceItem);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to move item to marketplace' });
-  }
-});
-
-// Get dashboard stats
-router.get('/stats', async (req, res) => {
-  try {
-    const [
-      totalLostItems,
-      totalFoundItems,
-      availableFoundItems,
-      pendingClaims,
-      approvedClaims,
-      marketplaceItems,
-      expiringItems
-    ] = await Promise.all([
-      prisma.lostItem.count({ where: { status: 'ACTIVE' } }),
-      prisma.foundItem.count(),
-      prisma.foundItem.count({ where: { status: 'AVAILABLE' } }),
-      prisma.claim.count({ where: { status: 'PENDING' } }),
-      prisma.claim.count({ where: { status: 'APPROVED' } }),
-      prisma.marketplaceItem.count({ where: { status: 'AVAILABLE' } }),
-      prisma.foundItem.count({
-        where: {
-          status: 'AVAILABLE',
-          expiresAt: {
-            lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-          }
-        }
-      })
-    ]);
-
-    res.json({
-      totalLostItems,
-      totalFoundItems,
-      availableFoundItems,
-      pendingClaims,
-      approvedClaims,
-      marketplaceItems,
-      expiringItems
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch stats' });
+    await Item.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Item deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error deleting item', error: error.message });
   }
 });
 

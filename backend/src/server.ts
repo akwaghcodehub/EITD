@@ -3,12 +3,15 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
+// Import routes
+import authRouter from './modules/auth/auth.routes';
+import itemsRouter from './modules/items/items.routes';
+import claimsRouter from './modules/claims/claims.routes';
+import marketplaceRouter from './modules/marketplace/marketplace.routes';
+import adminRouter from './modules/admin/admin.routes';
+
 // Load environment variables
 dotenv.config();
-
-// Add this debug line
-console.log('Connection string:', process.env.MONGODB_URI ? 'Found' : 'NOT FOUND');
-console.log('First 30 chars:', process.env.MONGODB_URI?.substring(0, 30));
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -28,10 +31,17 @@ const connectDB = async () => {
   }
 };
 
-// Basic route
+// Routes
 app.get('/', (req, res) => {
   res.json({ message: 'Illini Lost & Found API is running!' });
 });
+
+// API Routes
+app.use('/api/auth', authRouter);
+app.use('/api/items', itemsRouter);
+app.use('/api/claims', claimsRouter);
+app.use('/api/marketplace', marketplaceRouter);
+app.use('/api/admin', adminRouter);
 
 // Start server
 const startServer = async () => {

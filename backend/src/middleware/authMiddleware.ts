@@ -1,55 +1,29 @@
-// backend/src/middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import prisma from '../db/prismaClient';
 
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-  };
+  userId?: string;
+  userRole?: string;
 }
 
-export const authMiddleware = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
+export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-
+    const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ message: 'No token provided' });
     }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      userId: string;
-    };
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: { id: true, email: true, role: true }
-    });
-
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
-    }
-
-    req.user = user;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    req.userId = decoded.id;
+    req.userRole = decoded.role;
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    return res.status(401).json({ message: 'Invalid token' });
   }
 };
 
-export const adminMiddleware = (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  if (req.user?.role !== 'ADMIN') {
-    return res.status(403).json({ error: 'Admin access required' });
+export const adminMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ message: 'Access denied. Admin only.' });
   }
   next();
 };

@@ -1,158 +1,47 @@
-// backend/src/modules/claims/claims.routes.ts
-import express from 'express';
-import { z } from 'zod';
-import prisma from '../../db/prismaClient';
-import { authMiddleware } from '../../middleware/authMiddleware';
+import express, { Request, Response } from 'express';
+import Claim from '../../models/Claim';
+import { authMiddleware, AuthRequest } from '../../middleware/authMiddleware';
 
 const router = express.Router();
 
-const claimSchema = z.object({
-  foundItemId: z.string(),
-  description: z.string().min(10, 'Please provide detailed description'),
-  contactEmail: z.string().email(),
-  contactPhone: z.string().optional(),
-  additionalInfo: z.string().optional()
-});
-
-// Submit claim (AUTH REQUIRED)
-router.post('/', authMiddleware, async (req: any, res) => {
+router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const data = claimSchema.parse(req.body);
-
-    // Check if item exists and is available
-    const item = await prisma.foundItem.findUnique({
-      where: { id: data.foundItemId }
-    });
-
-    if (!item) {
-      return res.status(404).json({ error: 'Item not found' });
+    const { itemId, description, verificationDetails } = req.body;
+    if (!itemId || !description || !verificationDetails) {
+      return res.status(400).json({ message: 'Please provide all fields' });
     }
-
-    if (item.status !== 'AVAILABLE') {
-      return res.status(400).json({ error: 'Item is no longer available for claiming' });
-    }
-
-    // Check if user already has pending claim on this item
-    const existingClaim = await prisma.claim.findFirst({
-      where: {
-        foundItemId: data.foundItemId,
-        claimantId: req.user.id,
-        status: 'PENDING'
-      }
+    const newClaim = new Claim({
+      itemId,
+      claimantId: req.userId,
+      description,
+      verificationDetails,
     });
-
-    if (existingClaim) {
-      return res.status(400).json({ error: 'You already have a pending claim on this item' });
-    }
-
-    const claim = await prisma.claim.create({
-      data: {
-        ...data,
-        claimantId: req.user.id
-      },
-      include: {
-        foundItem: {
-          include: {
-            user: {
-              select: { firstName: true, lastName: true, email: true }
-            }
-          }
-        },
-        claimant: {
-          select: { firstName: true, lastName: true, email: true }
-        }
-      }
-    });
-
-    // TODO: Send email notification to item owner
-
-    res.status(201).json(claim);
+    const savedClaim = await newClaim.save();
+    res.status(201).json(savedClaim);
   } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors[0].message });
-    }
-    res.status(500).json({ error: 'Failed to submit claim' });
+    res.status(400).json({ message: 'Error creating claim', error: error.message });
   }
 });
 
-// Get user's claims (AUTH REQUIRED)
-router.get('/my-claims', authMiddleware, async (req: any, res) => {
+router.get('/my-claims', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const claims = await prisma.claim.findMany({
-      where: { claimantId: req.user.id },
-      include: {
-        foundItem: {
-          include: {
-            user: {
-              select: { firstName: true, lastName: true }
-            }
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
+    const claims = await Claim.find({ claimantId: req.userId })
+      .populate('itemId')
+      .sort({ createdAt: -1 });
     res.json(claims);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch claims' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error fetching claims', error: error.message });
   }
 });
 
-// Get claims for user's found items (AUTH REQUIRED)
-router.get('/for-my-items', authMiddleware, async (req: any, res) => {
+router.get('/item/:itemId', async (req: Request, res: Response) => {
   try {
-    const claims = await prisma.claim.findMany({
-      where: {
-        foundItem: {
-          userId: req.user.id
-        }
-      },
-      include: {
-        foundItem: true,
-        claimant: {
-          select: { firstName: true, lastName: true, email: true, phone: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
+    const claims = await Claim.find({ itemId: req.params.itemId })
+      .populate('claimantId', 'name email')
+      .sort({ createdAt: -1 });
     res.json(claims);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch claims' });
-  }
-});
-
-// Get single claim details (AUTH REQUIRED)
-router.get('/:id', authMiddleware, async (req: any, res) => {
-  try {
-    const claim = await prisma.claim.findUnique({
-      where: { id: req.params.id },
-      include: {
-        foundItem: {
-          include: {
-            user: {
-              select: { firstName: true, lastName: true, email: true }
-            }
-          }
-        },
-        claimant: {
-          select: { firstName: true, lastName: true, email: true, phone: true }
-        }
-      }
-    });
-
-    if (!claim) {
-      return res.status(404).json({ error: 'Claim not found' });
-    }
-
-    // Check if user is the claimant or item owner
-    if (claim.claimantId !== req.user.id && claim.foundItem.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    res.json(claim);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch claim' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error fetching claims', error: error.message });
   }
 });
 

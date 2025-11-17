@@ -1,304 +1,108 @@
-// backend/src/modules/items/items.routes.ts
-import express from 'express';
-import { z } from 'zod';
-import prisma from '../../db/prismaClient';
-import { authMiddleware } from '../../middleware/authMiddleware';
+import express, { Request, Response } from 'express';
+import Item from '../../models/Item';
+import { authMiddleware, AuthRequest } from '../../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Validation schemas
-const lostItemSchema = z.object({
-  itemName: z.string().min(1),
-  category: z.string().min(1),
-  description: z.string().min(1),
-  dateLost: z.string(),
-  location: z.string().min(1),
-  imageUrl: z.string().optional(),
-  contactEmail: z.string().email(),
-  contactPhone: z.string().optional()
-});
-
-const foundItemSchema = z.object({
-  itemName: z.string().min(1),
-  category: z.string().min(1),
-  description: z.string().min(1),
-  dateFound: z.string(),
-  locationFound: z.string().min(1),
-  currentLocation: z.string().min(1),
-  imageUrl: z.string().optional()
-});
-
-// ============ LOST ITEMS ============
-
-// Get all lost items (PUBLIC)
-router.get('/lost', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
-    const { category, location, search } = req.query;
-    
-    const where: any = { status: 'ACTIVE' };
-    
-    if (category) where.category = category;
-    if (location) where.location = location;
-    if (search) {
-      where.OR = [
-        { itemName: { contains: search as string, mode: 'insensitive' } },
-        { description: { contains: search as string, mode: 'insensitive' } }
-      ];
+    const { type } = req.query;
+    const filter: any = { status: 'active' };
+    if (type && (type === 'lost' || type === 'found')) {
+      filter.type = type;
     }
-
-    const items = await prisma.lostItem.findMany({
-      where,
-      include: {
-        user: {
-          select: { firstName: true, lastName: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
+    const items = await Item.find(filter).sort({ createdAt: -1 });
     res.json(items);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch lost items' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error fetching items', error: error.message });
   }
 });
 
-// Get single lost item (PUBLIC)
-router.get('/lost/:id', async (req, res) => {
+router.get('/search', async (req: Request, res: Response) => {
   try {
-    const item = await prisma.lostItem.findUnique({
-      where: { id: req.params.id },
-      include: {
-        user: {
-          select: { firstName: true, lastName: true }
-        }
-      }
-    });
-
-    if (!item) {
-      return res.status(404).json({ error: 'Item not found' });
+    const { q } = req.query;
+    if (!q) {
+      return res.status(400).json({ message: 'Search query required' });
     }
+    const items = await Item.find({
+      $and: [
+        { status: 'active' },
+        {
+          $or: [
+            { title: { $regex: q, $options: 'i' } },
+            { description: { $regex: q, $options: 'i' } },
+            { category: { $regex: q, $options: 'i' } },
+            { location: { $regex: q, $options: 'i' } },
+          ],
+        },
+      ],
+    }).sort({ createdAt: -1 });
+    res.json(items);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error searching items', error: error.message });
+  }
+});
 
+router.get('/my-items', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const items = await Item.find({ userId: req.userId }).sort({ createdAt: -1 });
+    res.json(items);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error fetching items', error: error.message });
+  }
+});
+
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
     res.json(item);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch item' });
-  }
-});
-
-// Report lost item (AUTH REQUIRED)
-router.post('/lost', authMiddleware, async (req: any, res) => {
-  try {
-    const data = lostItemSchema.parse(req.body);
-
-    const item = await prisma.lostItem.create({
-      data: {
-        ...data,
-        dateLost: new Date(data.dateLost),
-        userId: req.user.id
-      },
-      include: {
-        user: {
-          select: { firstName: true, lastName: true }
-        }
-      }
-    });
-
-    res.status(201).json(item);
   } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors[0].message });
-    }
-    res.status(500).json({ error: 'Failed to create lost item' });
+    res.status(500).json({ message: 'Error fetching item', error: error.message });
   }
 });
 
-// Update lost item (AUTH REQUIRED - own items only)
-router.put('/lost/:id', authMiddleware, async (req: any, res) => {
+router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const item = await prisma.lostItem.findUnique({
-      where: { id: req.params.id }
-    });
-
-    if (!item) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-
-    if (item.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    const updated = await prisma.lostItem.update({
-      where: { id: req.params.id },
-      data: req.body
-    });
-
-    res.json(updated);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update item' });
-  }
-});
-
-// Delete lost item (AUTH REQUIRED - own items only)
-router.delete('/lost/:id', authMiddleware, async (req: any, res) => {
-  try {
-    const item = await prisma.lostItem.findUnique({
-      where: { id: req.params.id }
-    });
-
-    if (!item) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-
-    if (item.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    await prisma.lostItem.delete({
-      where: { id: req.params.id }
-    });
-
-    res.json({ message: 'Item deleted' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete item' });
-  }
-});
-
-// ============ FOUND ITEMS ============
-
-// Get all found items (PUBLIC)
-router.get('/found', async (req, res) => {
-  try {
-    const { category, location, search } = req.query;
-    
-    const where: any = { 
-      status: { in: ['AVAILABLE', 'CLAIMED'] } // Don't show marketplace items here
-    };
-    
-    if (category) where.category = category;
-    if (location) where.locationFound = location;
-    if (search) {
-      where.OR = [
-        { itemName: { contains: search as string, mode: 'insensitive' } },
-        { description: { contains: search as string, mode: 'insensitive' } }
-      ];
-    }
-
-    const items = await prisma.foundItem.findMany({
-      where,
-      include: {
-        user: {
-          select: { firstName: true, lastName: true }
-        },
-        claims: {
-          where: { status: 'APPROVED' },
-          take: 1
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    // Calculate days until expiration
-    const itemsWithExpiry = items.map(item => ({
-      ...item,
-      daysUntilExpiry: Math.ceil(
-        (item.expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-      )
-    }));
-
-    res.json(itemsWithExpiry);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch found items' });
-  }
-});
-
-// Get single found item (PUBLIC)
-router.get('/found/:id', async (req, res) => {
-  try {
-    const item = await prisma.foundItem.findUnique({
-      where: { id: req.params.id },
-      include: {
-        user: {
-          select: { firstName: true, lastName: true, email: true }
-        },
-        claims: {
-          include: {
-            claimant: {
-              select: { firstName: true, lastName: true }
-            }
-          }
-        }
-      }
-    });
-
-    if (!item) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-
-    const daysUntilExpiry = Math.ceil(
-      (item.expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    res.json({ ...item, daysUntilExpiry });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch item' });
-  }
-});
-
-// Report found item (AUTH REQUIRED)
-router.post('/found', authMiddleware, async (req: any, res) => {
-  try {
-    const data = foundItemSchema.parse(req.body);
-
-    // Set expiration to 30 days from date found
-    const dateFound = new Date(data.dateFound);
-    const expiresAt = new Date(dateFound);
-    expiresAt.setDate(expiresAt.getDate() + 30);
-
-    const item = await prisma.foundItem.create({
-      data: {
-        ...data,
-        dateFound,
-        expiresAt,
-        userId: req.user.id
-      },
-      include: {
-        user: {
-          select: { firstName: true, lastName: true }
-        }
-      }
-    });
-
-    res.status(201).json(item);
+    const newItem = new Item({ ...req.body, userId: req.userId });
+    const savedItem = await newItem.save();
+    res.status(201).json(savedItem);
   } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors[0].message });
-    }
-    res.status(500).json({ error: 'Failed to create found item' });
+    res.status(400).json({ message: 'Error creating item', error: error.message });
   }
 });
 
-// Update found item (AUTH REQUIRED - own items only)
-router.put('/found/:id', authMiddleware, async (req: any, res) => {
+router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const item = await prisma.foundItem.findUnique({
-      where: { id: req.params.id }
-    });
-
+    const item = await Item.findById(req.params.id);
     if (!item) {
-      return res.status(404).json({ error: 'Item not found' });
+      return res.status(404).json({ message: 'Item not found' });
     }
-
-    if (item.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized' });
+    if (item.userId.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
+    const updatedItem = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    res.json(updatedItem);
+  } catch (error: any) {
+    res.status(400).json({ message: 'Error updating item', error: error.message });
+  }
+});
 
-    const updated = await prisma.foundItem.update({
-      where: { id: req.params.id },
-      data: req.body
-    });
-
-    res.json(updated);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update item' });
+router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+    if (item.userId.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    await Item.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Item deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error deleting item', error: error.message });
   }
 });
 
