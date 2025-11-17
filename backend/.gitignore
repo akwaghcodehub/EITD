@@ -1,5 +1,15 @@
-node_modules
-dist
-.env
-uploads/
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+
+# Logs
 *.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

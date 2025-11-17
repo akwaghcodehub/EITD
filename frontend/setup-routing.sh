@@ -1,3 +1,9 @@
+#!/bin/bash
+
+echo "🛣️ Setting up React Router..."
+
+# Create App.tsx with routing
+cat > src/App.tsx << 'EOF'
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
@@ -119,3 +125,17 @@ function App() {
 }
 
 export default App;
+EOF
+
+# Create .env file
+cat > .env << 'EOF'
+VITE_API_URL=http://localhost:5000/api
+EOF
+
+echo "✅ Routing setup complete!"
+echo ""
+echo "📝 Created:"
+echo "  ✅ App.tsx with full routing"
+echo "  ✅ .env file with API URL"
+echo ""
+echo "🎉 Frontend is now complete!"
