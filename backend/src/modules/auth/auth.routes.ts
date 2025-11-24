@@ -11,6 +11,17 @@ router.post('/register', async (req: Request, res: Response) => {
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Please provide all fields' });
     }
+    if (!email.toLowerCase().endsWith('@illinois.edu')) {
+      return res.status(400).json({ 
+        message: 'Only @illinois.edu email addresses are allowed' 
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });

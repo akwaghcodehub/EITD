@@ -5,17 +5,15 @@ import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 
-const RegisterPage: React.FC = () => {
+const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const register = useAuthStore((state) => state.register);
+  const login = useAuthStore((state) => state.login);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
-    confirmPassword: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,36 +25,24 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     setError('');
 
-  if (!formData.email.toLowerCase().endsWith('@illinois.edu')) {
-    setError('Please use your @illinois.edu email address');
-    return;
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(formData.email)) {
-    setError('Please enter a valid email address');
-    return;
-  }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
-    setIsLoading(true);
-
     try {
-      await register(formData.email, formData.password, formData.name);
-      navigate('/');
+      await login(formData.email, formData.password);
+      
+      // Check if user is admin
+      const user = useAuthStore.getState().user;
+      if (user?.role !== 'admin') {
+        setError('Access denied. Admin credentials required.');
+        useAuthStore.getState().logout();
+        setIsLoading(false);
+        return;
+      }
+      
+      navigate('/admin');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -66,8 +52,8 @@ const RegisterPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h2 className="text-4xl font-bold text-illini-blue">Join Us!</h2>
-          <p className="mt-2 text-gray-600">Create your account</p>
+          <h2 className="text-4xl font-bold text-illini-blue">Admin Portal</h2>
+          <p className="mt-2 text-gray-600">Sign in with admin credentials</p>
         </div>
 
         <Card>
@@ -79,26 +65,17 @@ const RegisterPage: React.FC = () => {
 
           <form onSubmit={handleSubmit}>
             <Input
-              label="Full Name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              placeholder="John Doe"
-            />
-
-            <Input
-              label="Email"
+              label="Admin Email"
               name="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
               required
-              placeholder="your.email@illinois.edu"
+              placeholder="admin@illinois.edu"
             />
 
             <Input
-              label="Password"
+              label="Admin Password"
               name="password"
               type="password"
               value={formData.password}
@@ -107,26 +84,16 @@ const RegisterPage: React.FC = () => {
               placeholder="••••••••"
             />
 
-            <Input
-              label="Confirm Password"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              placeholder="••••••••"
-            />
-
             <Button type="submit" variant="primary" isLoading={isLoading} className="w-full">
-              Create Account
+              Sign In as Admin
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Already have an account?{' '}
+              Not an admin?{' '}
               <Link to="/login" className="text-illini-orange font-semibold hover:underline">
-                Sign in
+                Regular Login
               </Link>
             </p>
           </div>
@@ -136,4 +103,4 @@ const RegisterPage: React.FC = () => {
   );
 };
 
-export default RegisterPage;
+export default AdminLoginPage;

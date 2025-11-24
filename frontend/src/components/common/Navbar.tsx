@@ -36,7 +36,7 @@ const Navbar: React.FC = () => {
             <Link to="/marketplace" className="hover:text-illini-orange transition">
               Marketplace
             </Link>
-            
+
             {isAuthenticated ? (
               <>
                 <Link to="/report-lost" className="hover:text-illini-orange transition">
@@ -67,6 +67,12 @@ const Navbar: React.FC = () => {
                 <Link to="/register">
                   <Button variant="primary" className="!py-1 !px-4">
                     Sign Up
+                  </Button>
+                </Link>
+                {/* ✅ ADD THIS */}
+                <Link to="/admin/login">
+                  <Button variant="secondary" className="!py-1 !px-4 !text-sm">
+                    Admin
                   </Button>
                 </Link>
               </>
@@ -107,7 +113,7 @@ const Navbar: React.FC = () => {
               >
                 Marketplace
               </Link>
-              
+
               {isAuthenticated ? (
                 <>
                   <Link
@@ -162,6 +168,10 @@ const Navbar: React.FC = () => {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Sign Up
+                  </Link>
+                  {/* ✅ ADD THIS */}
+                  <Link to="/admin/login" className="hover:text-illini-orange transition" onClick={() => setIsMobileMenuOpen(false)}>
+                    Admin Login
                   </Link>
                 </>
               )}

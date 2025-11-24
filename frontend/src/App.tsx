@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import AdminLoginPage from './pages/AdminLoginPage';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -18,9 +19,9 @@ import MarketplacePage from './pages/MarketplacePage';
 import AdminDashboard from './pages/AdminDashboard';
 
 // Protected Route Component
-const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ 
-  children, 
-  adminOnly = false 
+const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({
+  children,
+  adminOnly = false
 }) => {
   const { isAuthenticated, user, isLoading } = useAuthStore();
 
@@ -71,7 +72,7 @@ function App() {
             <Route path="/browse" element={<BrowsePage />} />
             <Route path="/items/:id" element={<ItemDetailPage />} />
             <Route path="/marketplace" element={<MarketplacePage />} />
-
+            <Route path="/admin/login" element={<AdminLoginPage />} />
             {/* Protected Routes */}
             <Route
               path="/report-lost"
