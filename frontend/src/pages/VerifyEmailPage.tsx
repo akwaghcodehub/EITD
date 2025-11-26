@@ -19,7 +19,6 @@ const VerifyEmailPage: React.FC = () => {
       return;
     }
 
-    // ✅ ADD DELAY to prevent flash of error
     const timer = setTimeout(() => {
       verifyEmail(token);
     }, 500);
@@ -29,13 +28,15 @@ const VerifyEmailPage: React.FC = () => {
 
   const verifyEmail = async (token: string) => {
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/auth/verify-email/${token}`
-      );
+      // Get API URL from environment
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const response = await axios.get(`${API_URL}/auth/verify-email/${token}`);
+      
       setStatus('success');
       setMessage(response.data.message);
       
-      // ✅ Auto redirect to login after 3 seconds
+      // Auto redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/login');
       }, 3000);
