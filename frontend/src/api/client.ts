@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_URL = import.meta.env.PROD 
-  ? 'https://your-backend-name.onrender.com/api'  // Will update later
+  ? 'https://illini-lost-found-backend.onrender.com'  // Will update later
   : 'http://localhost:5000/api';
 
 const apiClient = axios.create({
