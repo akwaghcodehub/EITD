@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
+import { randomBytes } from 'crypto';
 import User from '../../models/User';
 import { sendVerificationEmail, sendWelcomeEmail } from '../../utils/email';
 
@@ -46,7 +46,7 @@ router.post('/register', async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Generate verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+   const verificationToken = randomBytes(32).toString('hex');
     const tokenExpiry = new Date();
     tokenExpiry.setHours(tokenExpiry.getHours() + 24); // 24 hours
 
@@ -143,7 +143,7 @@ router.post('/resend-verification', async (req: Request, res: Response) => {
     }
 
     // Generate new verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+  const verificationToken = randomBytes(32).toString('hex');
     const tokenExpiry = new Date();
     tokenExpiry.setHours(tokenExpiry.getHours() + 24);
 
