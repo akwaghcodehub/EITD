@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const register = useAuthStore((state) => state.register);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
