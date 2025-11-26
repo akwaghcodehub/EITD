@@ -164,6 +164,7 @@ router.post('/resend-verification', async (req: Request, res: Response) => {
 });
 
 // Login (only verified users)
+// Login route
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -173,7 +174,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -181,7 +182,7 @@ router.post('/login', async (req: Request, res: Response) => {
     // Check if verified
     if (!user.isVerified) {
       return res.status(403).json({ 
-        message: 'Please verify your email before logging in. Check your inbox for verification link.',
+        message: 'Please verify your email before logging in. Check your inbox for the verification link.',
         needsVerification: true,
       });
     }
