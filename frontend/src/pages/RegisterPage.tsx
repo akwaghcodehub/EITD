@@ -25,42 +25,69 @@ const RegisterPage: React.FC = () => {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
 
+  // Validate @illinois.edu email
   if (!formData.email.toLowerCase().endsWith('@illinois.edu')) {
     setError('Please use your @illinois.edu email address');
     return;
   }
 
+  // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(formData.email)) {
     setError('Please enter a valid email address');
     return;
   }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+  if (formData.password !== formData.confirmPassword) {
+    setError('Passwords do not match');
+    return;
+  }
+
+  if (formData.password.length < 6) {
+    setError('Password must be at least 6 characters');
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    // ✅ UPDATED: Call API directly instead of using auth store
+    const response = await fetch('http://localhost:5000/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message);
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      await register(formData.email, formData.password, formData.name);
-      navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // ✅ Show success message
+    setError(''); // Clear any errors
+    alert(`✅ ${data.message}\n\nPlease check your email (${formData.email}) to verify your account.`);
+    
+    // Redirect to login after 3 seconds
+    setTimeout(() => {
+      navigate('/login');
+    }, 3000);
+  } catch (err: any) {
+    setError(err.message || 'Registration failed. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

@@ -5,6 +5,9 @@ import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import AdminLoginPage from './pages/AdminLoginPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+
+
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -73,6 +76,7 @@ function App() {
             <Route path="/items/:id" element={<ItemDetailPage />} />
             <Route path="/marketplace" element={<MarketplacePage />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             {/* Protected Routes */}
             <Route
               path="/report-lost"

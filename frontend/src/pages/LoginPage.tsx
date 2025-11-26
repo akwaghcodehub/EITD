@@ -10,7 +10,7 @@ const LoginPage: React.FC = () => {
   const login = useAuthStore((state) => state.login);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -22,17 +22,24 @@ const LoginPage: React.FC = () => {
       [e.target.name]: e.target.value,
     });
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+    setIsLoading(true);
 
     try {
       await login(formData.email, formData.password);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      const errorMessage = err.response?.data?.message || 'Login failed. Please try again.';
+
+      // ✅ Check if verification is needed
+      if (err.response?.data?.needsVerification) {
+        setError(errorMessage);
+        // You can add a "Resend Email" button here if you want
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
