@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
+import apiClient from '../api/client';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -53,35 +54,23 @@ const handleSubmit = async (e: React.FormEvent) => {
   setIsLoading(true);
 
   try {
-    // ✅ UPDATED: Call API directly instead of using auth store
-    const response = await fetch('http://localhost:5000/api/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-      }),
+    // ✅ USE apiClient instead of fetch
+    const response = await apiClient.post('/auth/register', {
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message);
-    }
-
-    // ✅ Show success message
-    setError(''); // Clear any errors
-    alert(`✅ ${data.message}\n\nPlease check your email (${formData.email}) to verify your account.`);
+    // Show success message
+    setError('');
+    alert(`✅ ${response.data.message}\n\nPlease check your email (${formData.email}) to verify your account.`);
     
     // Redirect to login after 3 seconds
     setTimeout(() => {
       navigate('/login');
     }, 3000);
   } catch (err: any) {
-    setError(err.message || 'Registration failed. Please try again.');
+    setError(err.response?.data?.message || 'Registration failed. Please try again.');
   } finally {
     setIsLoading(false);
   }
