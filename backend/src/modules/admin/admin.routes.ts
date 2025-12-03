@@ -4,6 +4,7 @@ import Claim from '../../models/Claim';
 import User from '../../models/User';
 import MarketplaceItem from '../../models/MarketplaceItem';
 import { authMiddleware, adminMiddleware, AuthRequest } from '../../middleware/authMiddleware';
+import { sendClaimApprovedEmail, sendClaimRejectedEmail } from '../../utils/email'; // ✅ Add this import
 
 const router = express.Router();
 
@@ -31,20 +32,64 @@ router.get('/claims', async (req: Request, res: Response) => {
   }
 });
 
+// ✅ REPLACE THIS ENTIRE ROUTE
 router.patch('/claims/:id', async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
+    
     if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
-    const updatedClaim = await Claim.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    ).populate('itemId').populate('claimantId', 'name email');
-    if (!updatedClaim) {
+
+    // Get claim with populated data
+    const claim = await Claim.findById(req.params.id)
+      .populate('claimantId', 'name email')
+      .populate('itemId', 'title _id');
+
+    if (!claim) {
       return res.status(404).json({ message: 'Claim not found' });
     }
+
+    // Update claim status
+    claim.status = status;
+    await claim.save();
+
+    // Update item status if approved
+    if (status === 'approved') {
+      await Item.findByIdAndUpdate(claim.itemId, { status: 'claimed' });
+    }
+
+    // ✅ Send email notification
+    try {
+      const claimant = claim.claimantId as any;
+      const item = claim.itemId as any;
+
+      if (status === 'approved') {
+        await sendClaimApprovedEmail(
+          claimant.email,
+          claimant.name,
+          item.title,
+          item._id.toString()
+        );
+        console.log('✅ Approval email sent to:', claimant.email);
+      } else if (status === 'rejected') {
+        await sendClaimRejectedEmail(
+          claimant.email,
+          claimant.name,
+          item.title
+        );
+        console.log('✅ Rejection email sent to:', claimant.email);
+      }
+    } catch (emailError) {
+      console.error('❌ Failed to send email notification:', emailError);
+      // Continue even if email fails - don't block the claim update
+    }
+
+    // Return updated claim
+    const updatedClaim = await Claim.findById(req.params.id)
+      .populate('itemId')
+      .populate('claimantId', 'name email');
+
     res.json(updatedClaim);
   } catch (error: any) {
     res.status(400).json({ message: 'Error updating claim', error: error.message });
