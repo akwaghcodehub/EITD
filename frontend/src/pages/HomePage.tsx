@@ -27,7 +27,7 @@ const HomePage: React.FC = () => {
                   </Button>
                 </Link>
                 <Link to="/report-found">
-                  <Button variant="outline" className="w-full sm:w-auto">
+                  <Button variant="primary" className="w-full sm:w-auto">
                     Report Found Item
                   </Button>
                 </Link>
