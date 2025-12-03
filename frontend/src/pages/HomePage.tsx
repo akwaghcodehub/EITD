@@ -50,6 +50,9 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
+      {/* White Divider */}
+      <div className="h-2 bg-white"></div>
+
       {/* Features Section */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
