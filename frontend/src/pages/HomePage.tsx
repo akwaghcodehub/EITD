@@ -40,7 +40,7 @@ const HomePage: React.FC = () => {
                   </Button>
                 </Link>
                 <Link to="/browse">
-                  <Button variant="outline" className="w-full sm:w-auto">
+                  <Button variant="primary" className="w-full sm:w-auto">
                     Browse Items
                   </Button>
                 </Link>
