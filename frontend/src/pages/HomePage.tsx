@@ -10,7 +10,7 @@ const HomePage: React.FC = () => {
   return (
     <div>
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-illini-blue to-illini-blue-light text-white py-20 border-b-4 border-white">
+      <section className="bg-gradient-to-r from-illini-blue to-illini-blue-light text-white py-20 border-b-4 border-white shadow-lg">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold mb-4">
             Lost Something? Found Something?

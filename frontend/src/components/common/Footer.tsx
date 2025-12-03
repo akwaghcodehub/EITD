@@ -42,9 +42,9 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-xl font-bold mb-4">Contact</h3>
             <p className="text-gray-300">
-              University of Illinois Urbana-Champaign
+              University of Illinois Urbana-Champaign Lost and Found
               <br />
-              Email: support@illinilostfound.com
+              Email: illinilostfound@gmail.com
             </p>
           </div>
         </div>
