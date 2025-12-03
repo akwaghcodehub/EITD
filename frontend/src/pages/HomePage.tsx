@@ -8,9 +8,9 @@ const HomePage: React.FC = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   return (
-    <div>
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-illini-blue to-illini-blue-light text-white py-20 border-b-4 border-white shadow-lg">
+      <section className="bg-illini-blue text-white py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold mb-4">
             Lost Something? Found Something?
@@ -50,11 +50,11 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* White Divider */}
-      <div className="h-2 bg-white"></div>
+      {/* White Separator */}
+      <div className="w-full h-1 bg-white"></div>
 
       {/* Features Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center text-illini-blue mb-12">
             How It Works
