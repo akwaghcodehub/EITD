@@ -27,7 +27,7 @@ const HomePage: React.FC = () => {
                   </Button>
                 </Link>
                 <Link to="/report-found">
-                  <Button variant="outline" className="w-full sm:w-auto !border-white !text-white hover:!bg-white hover:!text-illini-blue">
+                  <Button variant="outline" className="w-full sm:w-auto">
                     Report Found Item
                   </Button>
                 </Link>
@@ -40,7 +40,7 @@ const HomePage: React.FC = () => {
                   </Button>
                 </Link>
                 <Link to="/browse">
-                  <Button variant="outline" className="w-full sm:w-auto !border-white !text-white hover:!bg-white hover:!text-illini-blue">
+                  <Button variant="outline" className="w-full sm:w-auto">
                     Browse Items
                   </Button>
                 </Link>
