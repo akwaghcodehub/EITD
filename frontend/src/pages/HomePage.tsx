@@ -8,7 +8,7 @@ const HomePage: React.FC = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   return (
-    <div className="min-h-screen">
+    <div>
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-illini-blue to-illini-blue-light text-white py-20">
         <div className="container mx-auto px-4 text-center">

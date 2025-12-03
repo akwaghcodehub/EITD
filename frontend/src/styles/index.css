@@ -7,6 +7,15 @@
   padding: 0;
   box-sizing: border-box;
 }
+/* Remove default spacing */
+main {
+  margin: 0;
+  padding: 0;
+}
+
+footer {
+  margin-top: 0 !important;
+}
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
