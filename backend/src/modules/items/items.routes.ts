@@ -28,6 +28,18 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// ✅ ADD THIS ROUTE - Get user's items (must be BEFORE /:id route!)
+router.get('/my-items', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const items = await Item.find({ userId: req.userId }).sort({ createdAt: -1 });
+    res.json(items);
+  } catch (error: any) {
+    console.error('Error fetching user items:', error);
+    res.status(500).json({ message: 'Error fetching your items', error: error.message });
+  }
+});
+
+
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const item = await Item.findById(req.params.id);
