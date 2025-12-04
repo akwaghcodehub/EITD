@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import authRouter from './modules/auth/auth.routes';
@@ -41,6 +42,8 @@ app.use(cors({
 app.options('*', cors());
 
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 
 // Database connection
 const connectDB = async () => {

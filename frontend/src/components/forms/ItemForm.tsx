@@ -15,6 +15,7 @@ const ItemForm: React.FC<ItemFormProps> = ({ type }) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -22,7 +23,6 @@ const ItemForm: React.FC<ItemFormProps> = ({ type }) => {
     category: '',
     location: '',
     date: '',
-    imageUrl: '',
     contactEmail: '',
     contactPhone: '',
   });
@@ -34,19 +34,60 @@ const ItemForm: React.FC<ItemFormProps> = ({ type }) => {
     });
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size must be less than 5MB');
+        return;
+      }
+      setImageFile(file);
+      setError('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      await itemsAPI.createItem({
-        ...formData,
-        type,
+      // Create FormData for file upload
+      const submitData = new FormData();
+      submitData.append('title', formData.title);
+      submitData.append('description', formData.description);
+      submitData.append('type', type);
+      submitData.append('category', formData.category);
+      submitData.append('location', formData.location);
+      submitData.append('date', formData.date);
+      submitData.append('contactEmail', formData.contactEmail);
+      submitData.append('contactPhone', formData.contactPhone);
+      
+      if (imageFile) {
+        submitData.append('image', imageFile);
+      }
+
+      // Get API URL and token
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${API_URL}/items`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: submitData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create item');
+      }
+
       navigate('/my-items');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create item');
+      setError(err.message || 'Failed to create item');
     } finally {
       setIsLoading(false);
     }
@@ -110,14 +151,26 @@ const ItemForm: React.FC<ItemFormProps> = ({ type }) => {
         required
       />
 
-      <Input
-        label="Image URL (Optional)"
-        name="imageUrl"
-        type="url"
-        value={formData.imageUrl}
-        onChange={handleChange}
-        placeholder="https://example.com/image.jpg"
-      />
+      {/* Image Upload - REPLACED */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Upload Image (Optional)
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-illini-orange focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-illini-orange file:text-white hover:file:bg-illini-orange-dark"
+        />
+        {imageFile && (
+          <p className="text-sm text-green-600 mt-1">
+            Selected: {imageFile.name}
+          </p>
+        )}
+        <p className="text-sm text-gray-500 mt-1">
+          Max 5MB - JPG, PNG, GIF, WEBP
+        </p>
+      </div>
 
       <Input
         label="Contact Email"
