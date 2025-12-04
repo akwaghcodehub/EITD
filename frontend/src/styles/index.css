@@ -7,14 +7,20 @@
   padding: 0;
   box-sizing: border-box;
 }
-/* Remove default spacing */
+/* Remove gap between sections */
 main {
-  margin: 0;
-  padding: 0;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 footer {
   margin-top: 0 !important;
+  padding-top: 3rem !important;
+}
+
+/* Ensure CTA section has no bottom margin */
+section {
+  margin-bottom: 0 !important;
 }
 
 body {
