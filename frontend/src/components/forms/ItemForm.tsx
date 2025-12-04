@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { itemsAPI } from '../../api/items';
 import { CATEGORIES, LOCATIONS } from '../../types';
 import Input from '../common/Input';
 import TextArea from '../common/TextArea';
