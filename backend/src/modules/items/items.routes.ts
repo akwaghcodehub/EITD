@@ -56,10 +56,12 @@ router.post('/', authMiddleware, upload.single('image'), async (req: AuthRequest
   try {
     const { title, description, type, category, location, date, contactEmail, contactPhone } = req.body;
 
-    let imageUrl = '';
-    if (req.file) {
-      imageUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/${req.file.filename}`;
-    }
+ let imageUrl = '';
+if (req.file) {
+  const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+  imageUrl = `${backendUrl}/uploads/${req.file.filename}`;
+  console.log('Generated image URL:', imageUrl); // Debug log
+}
 
     const newItem = new Item({
       title,
