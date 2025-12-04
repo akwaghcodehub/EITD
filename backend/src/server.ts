@@ -8,11 +8,19 @@ import itemsRouter from './modules/items/items.routes';
 import claimsRouter from './modules/claims/claims.routes';
 import marketplaceRouter from './modules/marketplace/marketplace.routes';
 import adminRouter from './modules/admin/admin.routes';
+import fs from 'fs';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// ✅ CREATE UPLOADS FOLDER IF IT DOESN'T EXIST
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('📁 Created uploads directory');
+}
 
 // CORS Configuration
 app.use(cors({
