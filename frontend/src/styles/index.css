@@ -2,25 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Nuclear option - remove all gaps */
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#root {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+main {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+footer {
+  margin: 0 !important;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-/* Remove gap between sections */
-main {
-  margin-bottom: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-footer {
-  margin-top: 0 !important;
-  padding-top: 3rem !important;
-}
-
-/* Ensure CTA section has no bottom margin */
-section {
-  margin-bottom: 0 !important;
 }
 
 body {
