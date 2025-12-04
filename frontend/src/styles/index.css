@@ -57,3 +57,30 @@ body {
     @apply bg-white rounded-lg shadow-md hover:shadow-lg transition duration-300;
   }
 }
+/* Fix homepage footer gap */
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.min-h-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+}
+
+footer {
+  margin-top: auto;
+}
+
+/* Remove any section margins on homepage */
+main > div > section:last-child {
+  margin-bottom: 0 !important;
+}

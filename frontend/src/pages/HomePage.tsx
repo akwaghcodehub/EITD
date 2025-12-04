@@ -8,7 +8,7 @@ const HomePage: React.FC = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   return (
-    <div className="min-h-screen">
+    <div>
       {/* Hero Section */}
       <section className="bg-illini-blue text-white py-20">
         <div className="container mx-auto px-4 text-center">
@@ -92,7 +92,6 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
-
 
       {/* CTA Section */}
       <section className="py-16 bg-illini-orange text-white">

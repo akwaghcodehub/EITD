@@ -7,8 +7,6 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 import AdminLoginPage from './pages/AdminLoginPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 
-
-
 // Pages
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -21,7 +19,6 @@ import MyItemsPage from './pages/MyItemsPage';
 import MarketplacePage from './pages/MarketplacePage';
 import AdminDashboard from './pages/AdminDashboard';
 
-// Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({
   children,
   adminOnly = false
@@ -64,11 +61,10 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="flex flex-col min-h-screen bg-gray-50">
         <Navbar />
-        <main className="flex-grow">
+        <main className="flex-shrink-0">
           <Routes>
-            {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -77,7 +73,6 @@ function App() {
             <Route path="/marketplace" element={<MarketplacePage />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
-            {/* Protected Routes */}
             <Route
               path="/report-lost"
               element={
@@ -102,8 +97,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
-            {/* Admin Only Routes */}
             <Route
               path="/admin"
               element={
@@ -112,8 +105,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
-            {/* 404 */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
